@@ -83,6 +83,7 @@ export default function RichTextEditor({
   onChange,
   placeholder = 'Escribe aquí…',
   minHeight = 120,
+  maxHeight = 260,
   onImageUpload,
 }) {
   const fileInputRef = useRef(null);
@@ -105,8 +106,10 @@ export default function RichTextEditor({
     onUpdate: ({ editor: ed }) => onChange(ed.getJSON()),
     editorProps: {
       attributes: {
-        class: 'prose-sm focus:outline-none px-3 py-2',
-        style: `min-height:${minHeight}px`,
+        // Tope de altura con scroll interno: un borrador largo no debe empujar
+        // el botón de enviar fuera del panel.
+        class: 'prose-sm focus:outline-none px-3 py-2 overflow-y-auto',
+        style: `min-height:${minHeight}px;max-height:${maxHeight}px`,
       },
     },
   });

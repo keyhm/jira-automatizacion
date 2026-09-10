@@ -184,6 +184,7 @@ export default function CreateTaskView({
                 value={form.description}
                 onChange={(doc) => updateField('description', doc)}
                 minHeight={140}
+                maxHeight={360}
                 placeholder="Detalles, pasos, criterios de aceptación…"
               />
               <p className="mt-1 text-xs text-slate-400">

@@ -18,6 +18,16 @@ export default function CommentsPanel({ issueKey, commentCount, onCountChanged }
   const [editorKey, setEditorKey] = useState(0);
   const [sending, setSending] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [expanded, setExpanded] = useState(new Set());
+
+  function toggleExpanded(id) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function uploadImage(file) {
     const form = new FormData();
@@ -108,52 +118,70 @@ export default function CommentsPanel({ issueKey, commentCount, onCountChanged }
           <div className="fixed inset-0 z-10" onClick={close} />
           <div
             style={style}
-            className="fixed z-20 flex max-h-[32rem] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+            className="fixed z-20 flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
           >
-            <div className="border-b border-slate-100 px-3 py-2">
+            <div className="shrink-0 border-b border-slate-100 px-3 py-2">
               <p className="text-xs font-semibold text-slate-500">Comentarios de {issueKey}</p>
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto px-3 py-2">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-2">
               {loading && <p className="py-4 text-center text-xs text-slate-400">Cargando…</p>}
               {error && <p className="rounded-lg bg-red-50 px-2 py-1 text-xs text-red-600">{error}</p>}
-              {comments?.map((c) => (
-                <div key={c.id} className="group rounded-lg bg-slate-50 px-3 py-2 text-xs">
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      {c.authorAvatar && <img src={c.authorAvatar} alt="" className="h-5 w-5 rounded-full" />}
-                      <span className="font-medium text-slate-700">{c.author}</span>
+              {comments?.map((c) => {
+                const isLong = (c.body?.length || 0) > 320;
+                const isExpanded = expanded.has(c.id);
+                return (
+                  <div key={c.id} className="group rounded-lg bg-slate-50 px-3 py-2 text-xs">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {c.authorAvatar && <img src={c.authorAvatar} alt="" className="h-5 w-5 rounded-full" />}
+                        <span className="font-medium text-slate-700">{c.author}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400">{formatDate(c.created)}</span>
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          disabled={deletingId === c.id}
+                          className="text-slate-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
+                          title="Eliminar comentario"
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400">{formatDate(c.created)}</span>
+                    <div className={`relative ${isLong && !isExpanded ? 'max-h-56 overflow-hidden' : ''}`}>
+                      {c.bodyAdf ? (
+                        <RichTextView adf={c.bodyAdf} />
+                      ) : (
+                        <p className="whitespace-pre-wrap text-slate-700">{c.body}</p>
+                      )}
+                      {isLong && !isExpanded && (
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-50" />
+                      )}
+                    </div>
+                    {isLong && (
                       <button
-                        onClick={() => handleDelete(c.id)}
-                        disabled={deletingId === c.id}
-                        className="text-slate-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
-                        title="Eliminar comentario"
+                        onClick={() => toggleExpanded(c.id)}
+                        className="mt-1 text-[11px] font-medium text-indigo-600 hover:text-indigo-700"
                       >
-                        🗑
+                        {isExpanded ? 'Ver menos' : 'Ver más'}
                       </button>
-                    </div>
+                    )}
                   </div>
-                  {c.bodyAdf ? (
-                    <RichTextView adf={c.bodyAdf} />
-                  ) : (
-                    <p className="whitespace-pre-wrap text-slate-700">{c.body}</p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
               {comments?.length === 0 && !loading && (
                 <p className="py-4 text-center text-xs text-slate-400">Sin comentarios todavía.</p>
               )}
             </div>
 
-            <div className="space-y-2 border-t border-slate-100 p-2">
+            <div className="shrink-0 space-y-2 border-t border-slate-100 p-2">
               <RichTextEditor
                 key={editorKey}
                 value={doc}
                 onChange={setDoc}
                 minHeight={70}
+                maxHeight={160}
                 placeholder="Escribe un comentario…"
                 onImageUpload={uploadImage}
               />
