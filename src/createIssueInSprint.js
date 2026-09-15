@@ -177,6 +177,21 @@ async function updateIssueAssignee(issueKey, accountId) {
   }
 }
 
+/**
+ * dueDate en formato "YYYY-MM-DD" (el que usa el input type="date" del
+ * navegador), o null/vacío para quitar la fecha.
+ */
+async function updateIssueDueDate(issueKey, dueDate) {
+  const client = await getClient();
+  try {
+    await client.put(`/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {
+      fields: { duedate: dueDate || null },
+    });
+  } catch (error) {
+    throwApiError(error, `El cambio de fecha de vencimiento de ${issueKey}`);
+  }
+}
+
 module.exports = {
   createIssueInSprint,
   getActiveSprint,
@@ -184,4 +199,5 @@ module.exports = {
   getEpics,
   updateIssueEpic,
   updateIssueAssignee,
+  updateIssueDueDate,
 };

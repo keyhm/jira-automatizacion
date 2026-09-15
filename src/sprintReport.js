@@ -33,6 +33,7 @@ function normalizeIssue(issue) {
     statusCategory: issue.fields.status.statusCategory.key,
     secondsLogged: issue.fields.timespent || 0,
     commentCount: issue.fields.comment?.total ?? 0,
+    dueDate: issue.fields.duedate || null,
     epic,
     assignee,
   };
@@ -51,7 +52,7 @@ async function getSprintIssues(client, boardId, sprintId) {
           jql: `sprint = ${sprintId}`,
           startAt,
           maxResults,
-          fields: 'summary,status,issuetype,timespent,parent,assignee,comment',
+          fields: 'summary,status,issuetype,timespent,parent,assignee,comment,duedate',
         },
       }));
     } catch (error) {

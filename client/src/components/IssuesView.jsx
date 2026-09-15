@@ -4,6 +4,7 @@ import StatusPicker from './StatusPicker';
 import TimeEditor from './TimeEditor';
 import EpicChanger from './EpicChanger';
 import AssigneeChanger from './AssigneeChanger';
+import DueDateChanger from './DueDateChanger';
 import CommentsPanel from './CommentsPanel';
 import BulkActionBar from './BulkActionBar';
 import useLocalStorageState from '../hooks/useLocalStorageState';
@@ -84,6 +85,10 @@ export default function IssuesView({
 
   function updateIssueCommentCount(key, count) {
     setIssues((prev) => prev.map((i) => (i.key === key ? { ...i, commentCount: count } : i)));
+  }
+
+  function updateIssueDueDate(key, newDueDate) {
+    setIssues((prev) => prev.map((i) => (i.key === key ? { ...i, dueDate: newDueDate } : i)));
   }
 
   function toggleSelected(key) {
@@ -199,7 +204,7 @@ export default function IssuesView({
       />
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white/80 shadow-sm">
-        <table className="w-full min-w-[820px] text-left text-sm">
+        <table className="w-full min-w-[920px] text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
             <tr>
               <th className="w-10 px-4 py-3">
@@ -215,6 +220,7 @@ export default function IssuesView({
               <th className="px-4 py-3">Asignado</th>
               <th className="px-4 py-3">Tiempo</th>
               <th className="px-4 py-3">Estado</th>
+              <th className="px-4 py-3">Vence</th>
               <th className="px-4 py-3">Comentarios</th>
             </tr>
           </thead>
@@ -264,6 +270,14 @@ export default function IssuesView({
                   />
                 </td>
                 <td className="px-4 py-3">
+                  <DueDateChanger
+                    issueKey={issue.key}
+                    dueDate={issue.dueDate}
+                    isDone={issue.statusCategory === 'done'}
+                    onChanged={(newDueDate) => updateIssueDueDate(issue.key, newDueDate)}
+                  />
+                </td>
+                <td className="px-4 py-3">
                   <CommentsPanel
                     issueKey={issue.key}
                     commentCount={issue.commentCount}
@@ -274,7 +288,7 @@ export default function IssuesView({
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   No hay issues que coincidan con los filtros.
                 </td>
               </tr>

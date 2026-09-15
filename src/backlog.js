@@ -30,7 +30,7 @@ async function listBacklogIssues(boardId = DEFAULT_BOARD_ID) {
         params: {
           startAt,
           maxResults,
-          fields: 'summary,status,issuetype,timespent,parent,assignee,comment',
+          fields: 'summary,status,issuetype,timespent,parent,assignee,comment,duedate',
         },
       }));
     } catch (error) {
