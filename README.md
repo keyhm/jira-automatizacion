@@ -103,23 +103,25 @@ Todos están confirmados funcionando (crear tareas, asignar sprint/epic/particip
 
 ## Compartir el proyecto con un compañero
 
-Nada de lo que configures tú afecta al otro — cada quien corre su propia copia en su propia máquina, con su propio token. Lo único que comparten es Jira mismo (igual que ya lo comparten hoy usando la web de Jira).
+El proyecto vive en un repositorio de GitHub, así que compartirlo es clonarlo — nada de enviar carpetas ni `.zip` por correo. Nada de lo que configure cada quien afecta al otro: cada uno corre su propia copia en su propia máquina, con su propio token. Lo único que comparten es Jira mismo (igual que ya lo comparten hoy usando la web de Jira).
 
-1. **Copia la carpeta del proyecto**, excluyendo estos elementos (no se necesitan y `node_modules` pesa mucho):
-   - `node_modules/`
-   - `client/node_modules/`
-   - `client/dist/`
-   - `.env` y `client/.env` (contienen tu token personal — **nunca los compartas**)
+1. Asegúrate de que la persona tenga acceso al repositorio (colaborador si es privado; si es público no hace falta nada).
+2. Que clone el proyecto:
+   ```bash
+   git clone https://github.com/keyhm/jira-automatizacion.git
+   cd jira-automatizacion
+   ```
+3. Sigue los pasos de "Instalación" y "Configuración" de arriba con sus propios datos:
+   - `JIRA_DOMAIN`, `JIRA_PROJECT_KEY`, `JIRA_BOARD_ID` → **los mismos que los tuyos** (es el mismo equipo/proyecto de Jira).
+   - `JIRA_EMAIL` → su propio correo de Atlassian.
+   - `JIRA_API_TOKEN` → un token **generado por él/ella**, con los mismos scopes de la lista de arriba.
+4. Abre `Iniciar-App.bat` — instala las dependencias la primera vez y arranca la app.
 
-   La forma más simple: comprime la carpeta en un `.zip` excluyendo esas 4 rutas y pásasela por el medio que usen normalmente (correo, chat interno, unidad compartida).
+### Actualizaciones automáticas
 
-2. Tu compañero, al recibirla:
-   - Instala Node.js si no lo tiene.
-   - Sigue los pasos de "Instalación" y "Configuración" de arriba con sus propios datos:
-     - `JIRA_DOMAIN`, `JIRA_PROJECT_KEY`, `JIRA_BOARD_ID` → **los mismos que los tuyos** (es el mismo equipo/proyecto de Jira).
-     - `JIRA_EMAIL` → el correo de Atlassian de él.
-     - `JIRA_API_TOKEN` → un token **generado por él**, con los mismos scopes de la lista de arriba.
-   - Ejecuta `npm install` en la raíz y en `client/` (o simplemente abre `Iniciar-App.bat`, que lo hace automáticamente la primera vez).
-3. Listo — desde ahí su app funciona de forma completamente independiente a la tuya. El sprint/filtros que cada uno tenga seleccionados se guardan en el navegador de cada quien, no se comparten ni se pisan entre ustedes.
+Como el proyecto se clonó con git (no se copió como `.zip`), **`Iniciar-App.bat` revisa y trae automáticamente los cambios nuevos cada vez que se abre** — no hace falta que nadie sepa usar git ni corra comandos manuales:
+- Si hay cambios nuevos en el repositorio, los descarga antes de arrancar.
+- Si esos cambios agregaron alguna dependencia nueva, la instala sola.
+- Si no hay conexión a internet, o si esa persona modificó archivos localmente sin guardarlos como commit, simplemente arranca con la versión que ya tenía, sin romper nada.
 
-Si más adelante quieren mantenerlo sincronizado (por ejemplo si tú le agregas una función nueva), lo más práctico es subir el proyecto a un repositorio (GitHub/GitLab interno) en vez de reenviar el `.zip` cada vez — puedo ayudarte a configurar eso cuando lo necesites.
+Esto es "automático" en el sentido de que no requiere acción manual — pero solo revisa cuando se abre la app, no en segundo plano todo el tiempo. Si alguien tiene la app abierta hace horas y tú publicas un cambio, lo recibe la próxima vez que la cierre y la vuelva a abrir.
