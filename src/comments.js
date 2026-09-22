@@ -66,6 +66,12 @@ async function addComment(issueKey, { text, adf }) {
     });
     return normalizeComment(data);
   } catch (error) {
+    // Jira devuelve "INVALID_INPUT" sin decir qué parte del ADF rechazó.
+    // Se deja el body completo en la consola del servidor para poder
+    // diagnosticar la causa real la próxima vez que pase, en vez de adivinar.
+    console.error(`[comments] POST /issue/${issueKey}/comment falló. Body enviado:`);
+    console.error(JSON.stringify(body, null, 2));
+    console.error('Respuesta de Jira:', JSON.stringify(error.response?.data));
     throwApiError(error, `El comentario en ${issueKey}`);
   }
 }

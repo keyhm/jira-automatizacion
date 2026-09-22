@@ -6,15 +6,25 @@
  * "strong"/"em"/"textColor". Estas funciones traducen en ambas direcciones.
  */
 
+function colorMarkToAdf(mark) {
+  return mark.attrs?.color ? { type: 'textColor', attrs: { color: mark.attrs.color } } : null;
+}
+
 const MARK_TO_ADF = {
   bold: () => ({ type: 'strong' }),
   italic: () => ({ type: 'em' }),
   underline: () => ({ type: 'underline' }),
   strike: () => ({ type: 'strike' }),
   code: () => ({ type: 'code' }),
-  link: (mark) => ({ type: 'link', attrs: { href: mark.attrs?.href } }),
-  textStyle: (mark) =>
-    mark.attrs?.color ? { type: 'textColor', attrs: { color: mark.attrs.color } } : null,
+  // Un link sin href es una marca inválida para el ADF de Jira (rechaza todo
+  // el comentario) — si no hay href real, se descarta la marca en vez de
+  // mandarla rota.
+  link: (mark) => (mark.attrs?.href ? { type: 'link', attrs: { href: mark.attrs.href } } : null),
+  // El color de texto: en TipTap 2 vivía como atributo de la marca "textStyle";
+  // en TipTap 3 el extension @tiptap/extension-text-style expone el color como
+  // su propia marca llamada "color". Se soportan ambos nombres por si acaso.
+  textStyle: colorMarkToAdf,
+  color: colorMarkToAdf,
 };
 
 const MARK_FROM_ADF = {
