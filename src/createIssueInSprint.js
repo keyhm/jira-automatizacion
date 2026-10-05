@@ -192,6 +192,20 @@ async function updateIssueDueDate(issueKey, dueDate) {
   }
 }
 
+async function updateIssueSummary(issueKey, summary) {
+  const trimmed = (summary || '').trim();
+  if (!trimmed) throw new Error('El nombre de la tarea no puede quedar vacío.');
+
+  const client = await getClient();
+  try {
+    await client.put(`/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {
+      fields: { summary: trimmed },
+    });
+  } catch (error) {
+    throwApiError(error, `El cambio de nombre de ${issueKey}`);
+  }
+}
+
 module.exports = {
   createIssueInSprint,
   getActiveSprint,
@@ -200,4 +214,5 @@ module.exports = {
   updateIssueEpic,
   updateIssueAssignee,
   updateIssueDueDate,
+  updateIssueSummary,
 };

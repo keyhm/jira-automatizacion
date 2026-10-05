@@ -5,6 +5,7 @@ import TimeEditor from './TimeEditor';
 import EpicChanger from './EpicChanger';
 import AssigneeChanger from './AssigneeChanger';
 import DueDateChanger from './DueDateChanger';
+import SummaryEditor from './SummaryEditor';
 import CommentsPanel from './CommentsPanel';
 import BulkActionBar from './BulkActionBar';
 import useLocalStorageState from '../hooks/useLocalStorageState';
@@ -89,6 +90,10 @@ export default function IssuesView({
 
   function updateIssueDueDate(key, newDueDate) {
     setIssues((prev) => prev.map((i) => (i.key === key ? { ...i, dueDate: newDueDate } : i)));
+  }
+
+  function updateIssueSummary(key, newSummary) {
+    setIssues((prev) => prev.map((i) => (i.key === key ? { ...i, summary: newSummary } : i)));
   }
 
   function toggleSelected(key) {
@@ -237,7 +242,11 @@ export default function IssuesView({
                 </td>
                 <td className="max-w-sm px-4 py-3">
                   <p className="font-medium text-slate-800">{issue.key}</p>
-                  <p className="text-slate-500">{issue.summary}</p>
+                  <SummaryEditor
+                    issueKey={issue.key}
+                    summary={issue.summary}
+                    onChanged={(newSummary) => updateIssueSummary(issue.key, newSummary)}
+                  />
                 </td>
                 <td className="px-4 py-3">
                   <EpicChanger

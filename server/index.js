@@ -12,6 +12,7 @@ const {
   updateIssueEpic,
   updateIssueAssignee,
   updateIssueDueDate,
+  updateIssueSummary,
 } = require('../src/createIssueInSprint');
 const { getSprintReport, listSprintIssues } = require('../src/sprintReport');
 const { getTransitions, transitionIssue, getCommonTransitions, bulkTransition } = require('../src/issueWorkflow');
@@ -174,6 +175,16 @@ app.put('/api/issues/:key/duedate', async (req, res) => {
   const { dueDate } = req.body;
   try {
     await updateIssueDueDate(req.params.key, dueDate || null);
+    res.status(204).end();
+  } catch (error) {
+    res.status(error.response?.status || 500).json({ error: error.message });
+  }
+});
+
+app.put('/api/issues/:key/summary', async (req, res) => {
+  const { summary } = req.body;
+  try {
+    await updateIssueSummary(req.params.key, summary);
     res.status(204).end();
   } catch (error) {
     res.status(error.response?.status || 500).json({ error: error.message });
