@@ -22,7 +22,7 @@ const emptyForm = {
   issueType: 'Task',
   summary: '',
   description: null,
-  assigneeAccountId: '',
+  assigneeAccountIds: [],
   epicKey: '',
   hours: '',
   minutes: '',
@@ -48,6 +48,16 @@ export default function CreateTaskView({
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function toggleAssignee(accountId) {
+    setForm((prev) => {
+      const current = prev.assigneeAccountIds;
+      const next = current.includes(accountId)
+        ? current.filter((id) => id !== accountId)
+        : [...current, accountId];
+      return { ...prev, assigneeAccountIds: next };
+    });
+  }
+
   function goToConfirm(e) {
     e.preventDefault();
     if (!form.summary.trim()) return;
@@ -64,7 +74,7 @@ export default function CreateTaskView({
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch('/api/issues', {
+      const res = await fetch('/api/issues/for-assignees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -72,15 +82,15 @@ export default function CreateTaskView({
           summary: form.summary,
           description: form.description && !isEmptyDoc(form.description) ? tiptapToAdf(form.description) : undefined,
           sprintId: sprint?.id,
-          assigneeAccountId: form.assigneeAccountId || undefined,
+          assigneeAccountIds: form.assigneeAccountIds,
           epicKey: form.epicKey || undefined,
           timeSpentSeconds: timeSpentSeconds() || undefined,
           status: form.status,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error desconocido');
-      setResult(data);
+      const results = await res.json();
+      if (!res.ok) throw new Error(results.error || 'Error desconocido');
+      setResult(results);
       setStep(STEPS.DONE);
     } catch (err) {
       setError(err.message);
@@ -99,7 +109,7 @@ export default function CreateTaskView({
 
   const issueMeta = ISSUE_TYPES.find((t) => t.value === form.issueType);
   const statusMeta = STATUSES.find((s) => s.value === form.status);
-  const selectedAssignee = users.find((u) => u.accountId === form.assigneeAccountId);
+  const selectedAssignees = users.filter((u) => form.assigneeAccountIds.includes(u.accountId));
   const selectedEpic = epics.find((e) => e.key === form.epicKey);
   const seconds = timeSpentSeconds();
   const timeLabel = seconds > 0 ? `${(seconds / 3600).toFixed(2)}h` : null;
@@ -203,16 +213,23 @@ export default function CreateTaskView({
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Asignar a</label>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block text-sm font-medium text-slate-700">Asignar a</label>
+                {form.assigneeAccountIds.length > 1 && (
+                  <span className="text-xs font-medium text-indigo-600">
+                    {form.assigneeAccountIds.length} seleccionados — se creará 1 tarea por persona
+                  </span>
+                )}
+              </div>
               {usersLoading ? (
                 <p className="text-sm text-slate-400">Cargando participantes…</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => updateField('assigneeAccountId', '')}
+                    onClick={() => updateField('assigneeAccountIds', [])}
                     className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-medium transition ${
-                      !form.assigneeAccountId
+                      form.assigneeAccountIds.length === 0
                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                         : 'border-slate-200 text-slate-500 hover:border-slate-300'
                     }`}
@@ -224,9 +241,9 @@ export default function CreateTaskView({
                     <button
                       type="button"
                       key={u.accountId}
-                      onClick={() => updateField('assigneeAccountId', u.accountId)}
+                      onClick={() => toggleAssignee(u.accountId)}
                       className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-medium transition ${
-                        form.assigneeAccountId === u.accountId
+                        form.assigneeAccountIds.includes(u.accountId)
                           ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                           : 'border-slate-200 text-slate-500 hover:border-slate-300'
                       }`}
@@ -241,6 +258,9 @@ export default function CreateTaskView({
                   ))}
                 </div>
               )}
+              <p className="mt-1 text-xs text-slate-400">
+                Puedes seleccionar varias personas — se crea una tarea idéntica para cada una (ej: una reunión con todo el equipo).
+              </p>
             </div>
 
             <div>
@@ -314,20 +334,26 @@ export default function CreateTaskView({
                 <dd className="font-medium text-slate-800">{selectedEpic ? selectedEpic.summary : 'Sin proyecto asociado'}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Asignado a</dt>
-                <dd className="flex items-center gap-2 font-medium text-slate-800">
-                  {selectedAssignee ? (
-                    <>
-                      <img src={selectedAssignee.avatarUrls?.['24x24']} alt="" className="h-5 w-5 rounded-full" />
-                      {selectedAssignee.displayName}
-                    </>
+                <dt className="shrink-0 text-slate-500">
+                  {selectedAssignees.length > 1 ? `Se crearán ${selectedAssignees.length} tareas para` : 'Asignado a'}
+                </dt>
+                <dd className="flex flex-wrap justify-end gap-x-3 gap-y-1 font-medium text-slate-800">
+                  {selectedAssignees.length > 0 ? (
+                    selectedAssignees.map((a) => (
+                      <span key={a.accountId} className="inline-flex items-center gap-1.5">
+                        <img src={a.avatarUrls?.['24x24']} alt="" className="h-5 w-5 rounded-full" />
+                        {a.displayName}
+                      </span>
+                    ))
                   ) : (
                     'Sin asignar'
                   )}
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Tiempo a registrar</dt>
+                <dt className="text-slate-500">
+                  Tiempo a registrar{selectedAssignees.length > 1 ? ' (por persona)' : ''}
+                </dt>
                 <dd className="font-medium text-slate-800">{timeLabel || 'No se registrará tiempo'}</dd>
               </div>
               <div className="flex justify-between gap-4">
@@ -356,7 +382,11 @@ export default function CreateTaskView({
                 disabled={submitting}
                 className="flex-1 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 py-3 font-medium text-white shadow-lg shadow-indigo-200 transition hover:opacity-90 disabled:opacity-60"
               >
-                {submitting ? 'Creando…' : 'Sí, crear la tarea'}
+                {submitting
+                  ? 'Creando…'
+                  : selectedAssignees.length > 1
+                  ? `Sí, crear ${selectedAssignees.length} tareas`
+                  : 'Sí, crear la tarea'}
               </button>
             </div>
           </div>
@@ -364,27 +394,71 @@ export default function CreateTaskView({
 
         {step === STEPS.DONE && result && (
           <div className="space-y-6 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl">
-              ✅
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">Tarea creada</h2>
-              <p className="text-slate-500">Se agregó al sprint {result.sprint?.name}.</p>
-            </div>
-            <a
-              href={`https://${import.meta.env.VITE_JIRA_DOMAIN || ''}/browse/${result.key}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block rounded-full bg-slate-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
-            >
-              Ver {result.key} en Jira ↗
-            </a>
-            <button
-              onClick={startOver}
-              className="block w-full rounded-xl border border-slate-200 py-3 font-medium text-slate-600 transition hover:bg-slate-50"
-            >
-              Crear otra tarea
-            </button>
+            {(() => {
+              const succeeded = result.filter((r) => r.ok);
+              const failed = result.filter((r) => !r.ok);
+              const multi = result.length > 1;
+              return (
+                <>
+                  <div
+                    className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full text-3xl ${
+                      failed.length > 0 ? 'bg-amber-100' : 'bg-emerald-100'
+                    }`}
+                  >
+                    {failed.length > 0 ? '⚠️' : '✅'}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">
+                      {multi
+                        ? `${succeeded.length} de ${result.length} tareas creadas`
+                        : succeeded.length > 0
+                        ? 'Tarea creada'
+                        : 'No se pudo crear la tarea'}
+                    </h2>
+                    {succeeded[0]?.issue?.sprint?.name && (
+                      <p className="text-slate-500">Se agregaron al sprint {succeeded[0].issue.sprint.name}.</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    {succeeded.map((r) => {
+                      const person = users.find((u) => u.accountId === r.accountId);
+                      return (
+                        <div key={r.issue.key} className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 px-4 py-2 text-sm">
+                          <span className="flex items-center gap-2 text-slate-700">
+                            {person && <img src={person.avatarUrls?.['24x24']} alt="" className="h-5 w-5 rounded-full" />}
+                            {person ? person.displayName : 'Sin asignar'}
+                          </span>
+                          <a
+                            href={`https://${import.meta.env.VITE_JIRA_DOMAIN || ''}/browse/${r.issue.key}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-indigo-600 hover:text-indigo-700"
+                          >
+                            Ver {r.issue.key} ↗
+                          </a>
+                        </div>
+                      );
+                    })}
+                    {failed.map((r) => {
+                      const person = users.find((u) => u.accountId === r.accountId);
+                      return (
+                        <div key={r.accountId || 'sin-asignar'} className="rounded-xl bg-red-50 px-4 py-2 text-left text-sm text-red-700">
+                          <strong>{person ? person.displayName : 'Sin asignar'}:</strong> {r.error}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={startOver}
+                    className="block w-full rounded-xl border border-slate-200 py-3 font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Crear otra tarea
+                  </button>
+                </>
+              );
+            })()}
           </div>
         )}
       </main>

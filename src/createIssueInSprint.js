@@ -152,7 +152,34 @@ async function createIssueInSprint({
   return {
     ...createdIssue,
     sprint: targetSprint,
+    assigneeAccountId,
   };
+}
+
+/**
+ * Jira no permite varios responsables en un mismo issue (el campo assignee es
+ * de una sola persona), así que para "una tarea para todo el equipo" se crea
+ * un issue idéntico por cada persona, cada uno asignado a la suya. El sprint
+ * se resuelve una sola vez (si no se indica uno) y se reutiliza en todas las
+ * copias, para no pedir el sprint activo N veces ni arriesgar que cambie a
+ * mitad del lote.
+ */
+async function createIssueForEachAssignee({ assigneeAccountIds, sprint, boardId = DEFAULT_BOARD_ID, ...rest }) {
+  const ids = assigneeAccountIds && assigneeAccountIds.length > 0 ? assigneeAccountIds : [null];
+
+  const client = await getClient();
+  const targetSprint = sprint || (await getActiveSprint(client, boardId));
+
+  const results = [];
+  for (const accountId of ids) {
+    try {
+      const issue = await createIssueInSprint({ ...rest, sprint: targetSprint, boardId, assigneeAccountId: accountId });
+      results.push({ accountId, ok: true, issue });
+    } catch (error) {
+      results.push({ accountId, ok: false, error: error.message });
+    }
+  }
+  return results;
 }
 
 async function updateIssueEpic(issueKey, epicKey) {
@@ -208,6 +235,7 @@ async function updateIssueSummary(issueKey, summary) {
 
 module.exports = {
   createIssueInSprint,
+  createIssueForEachAssignee,
   getActiveSprint,
   searchAssignableUsers,
   getEpics,

@@ -6,6 +6,7 @@ require('dotenv').config();
 const { getClient } = require('../src/jiraClient');
 const {
   createIssueInSprint,
+  createIssueForEachAssignee,
   getActiveSprint,
   searchAssignableUsers,
   getEpics,
@@ -353,6 +354,32 @@ app.post('/api/issues', async (req, res) => {
       status: status || undefined,
     });
     res.status(201).json(issue);
+  } catch (error) {
+    res.status(error.response?.status || 500).json({ error: error.message });
+  }
+});
+
+app.post('/api/issues/for-assignees', async (req, res) => {
+  const { issueType, summary, description, sprintId, assigneeAccountIds, epicKey, timeSpentSeconds, status } = req.body;
+
+  if (!summary) {
+    return res.status(400).json({ error: 'El resumen es obligatorio.' });
+  }
+
+  try {
+    const results = await createIssueForEachAssignee({
+      project: PROJECT_KEY,
+      issueType: issueType || 'Task',
+      summary,
+      description,
+      sprint: sprintId,
+      boardId: BOARD_ID,
+      assigneeAccountIds: Array.isArray(assigneeAccountIds) ? assigneeAccountIds : [],
+      epicKey: epicKey || undefined,
+      timeSpentSeconds: timeSpentSeconds || undefined,
+      status: status || undefined,
+    });
+    res.status(201).json(results);
   } catch (error) {
     res.status(error.response?.status || 500).json({ error: error.message });
   }
