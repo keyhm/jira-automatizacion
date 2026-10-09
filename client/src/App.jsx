@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import CreateTaskView from './components/CreateTaskView';
 import ReportView from './components/ReportView';
 import IssuesView from './components/IssuesView';
+import MeetingsView from './components/MeetingsView';
 import SprintPicker from './components/SprintPicker';
 import useLocalStorageState from './hooks/useLocalStorageState';
 
@@ -9,6 +10,7 @@ const TABS = [
   { id: 'create', label: 'Crear tarea', emoji: '✨' },
   { id: 'board', label: 'Tablero', emoji: '🗂️' },
   { id: 'report', label: 'Reporte', emoji: '📊' },
+  { id: 'meetings', label: 'Reuniones', emoji: '📅' },
 ];
 
 const BOARD_WIDTHS = {
@@ -122,6 +124,7 @@ export default function App() {
         {tab === 'create' && <CreateTaskView {...shared} />}
         {tab === 'board' && <IssuesView {...shared} />}
         {tab === 'report' && <ReportView {...shared} />}
+        {tab === 'meetings' && <MeetingsView />}
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ const { listSprints, moveIssuesToSprint } = require('../src/sprints');
 const { listComments, addComment, deleteComment } = require('../src/comments');
 const { listBacklogIssues, moveIssuesToBacklog } = require('../src/backlog');
 const { uploadAttachment, getAttachmentContent } = require('../src/attachments');
+const { listTeamMeetings, saveTeamMeetings } = require('../src/meetings');
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 4000;
@@ -382,6 +383,28 @@ app.post('/api/issues/for-assignees', async (req, res) => {
     res.status(201).json(results);
   } catch (error) {
     res.status(error.response?.status || 500).json({ error: error.message });
+  }
+});
+
+app.get('/api/meetings/team', async (_req, res) => {
+  try {
+    const meetings = await listTeamMeetings();
+    res.json(meetings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/meetings/team', async (req, res) => {
+  const { meetings } = req.body;
+  if (!Array.isArray(meetings)) {
+    return res.status(400).json({ error: 'meetings debe ser un arreglo.' });
+  }
+  try {
+    const saved = await saveTeamMeetings(meetings);
+    res.json(saved);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

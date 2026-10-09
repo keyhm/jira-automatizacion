@@ -1,0 +1,37 @@
+[
+  {
+    "id": "daily-coreapps",
+    "name": "Daily CoreApps",
+    "link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MGY1YmJkYjQtOTI2My00NzgzLWI3ZTItNmExNzIxZGZkMWRh%40thread.v2/0?context=%7b%22Tid%22%3a%22f822979a-ced9-4158-aa8b-b8b638196e20%22%2c%22Oid%22%3a%22ab73bb73-fd89-4393-bcc9-52ae2fbf669e%22%7d",
+    "schedule": [
+      { "days": ["mon", "wed", "thu"], "start": "16:30", "end": "16:45" },
+      { "days": ["fri"], "start": "16:00", "end": "16:15" }
+    ]
+  },
+  {
+    "id": "daily-twl",
+    "name": "Daily TWL",
+    "link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mjc5YjFiZGItZjYzMS00MjI5LTkyNGQtMDcyYzVmMjE1MWQ0%40thread.v2/0?context=%7b%22Tid%22%3a%22f822979a-ced9-4158-aa8b-b8b638196e20%22%2c%22Oid%22%3a%22ab73bb73-fd89-4393-bcc9-52ae2fbf669e%22%7d",
+    "schedule": [
+      { "days": ["mon", "wed", "thu"], "start": "16:45", "end": "17:00" },
+      { "days": ["fri"], "start": "16:15", "end": "16:30" }
+    ]
+  },
+  {
+    "id": "daily-onspot",
+    "name": "Daily OnSpot",
+    "link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjhjNDdjMWYtOTcxMy00ZjZlLWE4MDMtMmUyNmZjNDE2OTc5%40thread.v2/0?context=%7b%22Tid%22%3a%22f822979a-ced9-4158-aa8b-b8b638196e20%22%2c%22Oid%22%3a%22ab73bb73-fd89-4393-bcc9-52ae2fbf669e%22%7d",
+    "schedule": [
+      { "days": ["mon", "wed", "thu"], "start": "16:15", "end": "16:30" },
+      { "days": ["fri"], "start": "15:45", "end": "16:00" }
+    ]
+  },
+  {
+    "id": "planning-anthony",
+    "name": "Planning con Anthony",
+    "link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Njg4MjE1OWMtYTg3NC00YTY1LWEzMzItYTQ4ZDMxMTYzMWU2%40thread.v2/0?context=%7b%22Tid%22%3a%22f822979a-ced9-4158-aa8b-b8b638196e20%22%2c%22Oid%22%3a%22ab73bb73-fd89-4393-bcc9-52ae2fbf669e%22%7d",
+    "schedule": [
+      { "days": ["tue"], "start": "16:00", "end": "17:00" }
+    ]
+  }
+]
