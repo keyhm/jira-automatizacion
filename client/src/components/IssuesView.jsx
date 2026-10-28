@@ -68,8 +68,10 @@ export default function IssuesView({
     });
   }, [issues, epicKey, assigneeAccountId, status, search]);
 
-  function updateIssueStatus(key, newStatus) {
-    setIssues((prev) => prev.map((i) => (i.key === key ? { ...i, status: newStatus } : i)));
+  function updateIssueStatus(key, newStatus, newStatusCategory) {
+    setIssues((prev) =>
+      prev.map((i) => (i.key === key ? { ...i, status: newStatus, statusCategory: newStatusCategory } : i))
+    );
   }
 
   function updateIssueTime(key, seconds) {
@@ -275,7 +277,8 @@ export default function IssuesView({
                   <StatusPicker
                     issueKey={issue.key}
                     status={issue.status}
-                    onChanged={(newStatus) => updateIssueStatus(issue.key, newStatus)}
+                    statusCategory={issue.statusCategory}
+                    onChanged={(newStatus, newCategory) => updateIssueStatus(issue.key, newStatus, newCategory)}
                   />
                 </td>
                 <td className="px-4 py-3">

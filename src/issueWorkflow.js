@@ -14,7 +14,16 @@ async function getTransitions(issueKey) {
   const client = await getClient();
   try {
     const { data } = await client.get(`/rest/api/3/issue/${encodeURIComponent(issueKey)}/transitions`);
-    return data.transitions.map((t) => ({ id: t.id, name: t.name, to: t.to.name }));
+    // "to" es el nombre del estado tal como esté configurado en el workflow de
+    // cada quien (puede estar en español, inglés, o ser un nombre a medida);
+    // "toCategory" es new/indeterminate/done, siempre igual sin importar el
+    // idioma — es lo que hay que usar para comparar estados entre workflows.
+    return data.transitions.map((t) => ({
+      id: t.id,
+      name: t.name,
+      to: t.to.name,
+      toCategory: t.to.statusCategory?.key,
+    }));
   } catch (error) {
     throwApiError(error, `La consulta de transiciones de ${issueKey}`);
   }

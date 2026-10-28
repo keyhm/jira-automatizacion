@@ -142,10 +142,18 @@ async function createIssueInSprint({
   }
 
   if (status) {
+    // "status" es una categoría de Jira (new/indeterminate/done), no el nombre
+    // del estado — así funciona sin importar si el workflow está en español,
+    // inglés, o tiene nombres de estado a medida.
     const transitions = await getTransitions(createdIssue.key);
-    const match = transitions.find((t) => t.to === status);
+    const match = transitions.find((t) => t.toCategory === status);
     if (match) {
       await transitionIssue(createdIssue.key, match.id);
+    } else {
+      console.warn(
+        `[createIssueInSprint] ${createdIssue.key}: no se encontró una transición a la categoría "${status}". Transiciones disponibles:`,
+        transitions.map((t) => `${t.name} -> ${t.to} (${t.toCategory})`)
+      );
     }
   }
 

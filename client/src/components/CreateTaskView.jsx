@@ -10,10 +10,13 @@ const ISSUE_TYPES = [
   { value: 'Story', label: 'Historia', emoji: '📖' },
 ];
 
+// "value" es la categoría de estado de Jira (new/indeterminate/done), no el
+// nombre — así funciona igual sin importar si el workflow de cada quien está
+// en español, inglés, o tiene nombres de estado a medida.
 const STATUSES = [
-  { value: 'To Do', label: 'Por hacer', emoji: '📥' },
-  { value: 'In Progress', label: 'En progreso', emoji: '🔄' },
-  { value: 'Done', label: 'Hecha', emoji: '✅' },
+  { value: 'new', label: 'Por hacer', emoji: '📥' },
+  { value: 'indeterminate', label: 'En progreso', emoji: '🔄' },
+  { value: 'done', label: 'Hecha', emoji: '✅' },
 ];
 
 const STEPS = { FORM: 'form', CONFIRM: 'confirm', DONE: 'done' };
@@ -26,7 +29,7 @@ const emptyForm = {
   epicKey: '',
   hours: '',
   minutes: '',
-  status: 'To Do',
+  status: 'new',
 };
 
 export default function CreateTaskView({

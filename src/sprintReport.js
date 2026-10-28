@@ -90,6 +90,7 @@ async function getSprintReport({ sprintId, boardId = DEFAULT_BOARD_ID, epicKey, 
   });
 
   const byStatus = {};
+  const statusCategoryByName = {};
   const byType = {};
   const byEpic = {};
   const byAssignee = {};
@@ -98,6 +99,7 @@ async function getSprintReport({ sprintId, boardId = DEFAULT_BOARD_ID, epicKey, 
 
   for (const issue of issues) {
     byStatus[issue.status] = (byStatus[issue.status] || 0) + 1;
+    statusCategoryByName[issue.status] = issue.statusCategory;
     byType[issue.type] = (byType[issue.type] || 0) + 1;
     if (issue.statusCategory === 'done') doneCount += 1;
     totalSecondsLogged += issue.secondsLogged;
@@ -119,6 +121,7 @@ async function getSprintReport({ sprintId, boardId = DEFAULT_BOARD_ID, epicKey, 
     completedIssues: doneCount,
     percentComplete: issues.length ? Math.round((doneCount / issues.length) * 100) : 0,
     byStatus,
+    statusCategoryByName,
     byType,
     byEpic,
     byAssignee,

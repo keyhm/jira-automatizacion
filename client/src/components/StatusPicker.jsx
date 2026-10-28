@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import useAnchoredMenu from '../hooks/useAnchoredMenu';
 
-const STATUS_STYLES = {
-  'To Do': 'bg-slate-100 text-slate-600',
-  'In Progress': 'bg-amber-100 text-amber-700',
-  Done: 'bg-emerald-100 text-emerald-700',
+// Colores por categoría de Jira (new/indeterminate/done), no por nombre —
+// así se pintan igual sin importar el idioma o los nombres del workflow.
+const CATEGORY_STYLES = {
+  new: 'bg-slate-100 text-slate-600',
+  indeterminate: 'bg-amber-100 text-amber-700',
+  done: 'bg-emerald-100 text-emerald-700',
 };
 
-function styleFor(status) {
-  return STATUS_STYLES[status] || 'bg-slate-100 text-slate-600';
+function styleFor(statusCategory) {
+  return CATEGORY_STYLES[statusCategory] || 'bg-slate-100 text-slate-600';
 }
 
-export default function StatusPicker({ issueKey, status, onChanged }) {
+export default function StatusPicker({ issueKey, status, statusCategory, onChanged }) {
   const { triggerRef, open, style, toggle, close } = useAnchoredMenu({ width: 192, estimatedHeight: 180 });
   const [transitions, setTransitions] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -50,7 +52,7 @@ export default function StatusPicker({ issueKey, status, onChanged }) {
         const data = await res.json();
         throw new Error(data.error || 'Error desconocido');
       }
-      onChanged(pending.to);
+      onChanged(pending.to, pending.toCategory);
       close();
       setPending(null);
     } catch (err) {
@@ -66,7 +68,7 @@ export default function StatusPicker({ issueKey, status, onChanged }) {
         ref={triggerRef}
         type="button"
         onClick={openPicker}
-        className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition hover:opacity-80 ${styleFor(status)}`}
+        className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition hover:opacity-80 ${styleFor(statusCategory)}`}
       >
         {status}
       </button>

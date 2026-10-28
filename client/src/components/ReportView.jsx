@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import FilterBar from './FilterBar';
 import useLocalStorageState from '../hooks/useLocalStorageState';
 
-const STATUS_COLORS = {
-  'To Do': 'bg-slate-400',
-  'In Progress': 'bg-amber-400',
-  Done: 'bg-emerald-500',
+// Colores por categoría de Jira (new/indeterminate/done), no por nombre —
+// así se pintan igual sin importar si el workflow está en español, inglés,
+// o tiene nombres de estado a medida.
+const CATEGORY_COLORS = {
+  new: 'bg-slate-400',
+  indeterminate: 'bg-amber-400',
+  done: 'bg-emerald-500',
 };
 
 function StatTile({ label, value, accent }) {
@@ -148,7 +151,7 @@ export default function ReportView({ epics, users, selectedSprintId }) {
               title="Por estado"
               entries={Object.entries(report.byStatus)}
               total={report.totalIssues}
-              colorFor={(label) => STATUS_COLORS[label] || 'bg-slate-400'}
+              colorFor={(label) => CATEGORY_COLORS[report.statusCategoryByName?.[label]] || 'bg-slate-400'}
             />
             <BreakdownBars
               title="Por tipo"
