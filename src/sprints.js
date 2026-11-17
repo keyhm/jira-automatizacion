@@ -36,6 +36,16 @@ async function listSprints(boardId) {
     .sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0));
 }
 
+async function getSprintById(sprintId) {
+  const client = await getClient();
+  try {
+    const { data } = await client.get(`/rest/agile/1.0/sprint/${encodeURIComponent(sprintId)}`);
+    return { id: data.id, name: data.name, state: data.state, startDate: data.startDate, endDate: data.endDate };
+  } catch (error) {
+    throwApiError(error, `La consulta del sprint ${sprintId}`);
+  }
+}
+
 async function moveIssuesToSprint(sprintId, issueKeys) {
   const client = await getClient();
   try {
@@ -47,4 +57,4 @@ async function moveIssuesToSprint(sprintId, issueKeys) {
   }
 }
 
-module.exports = { listSprints, moveIssuesToSprint };
+module.exports = { listSprints, getSprintById, moveIssuesToSprint };

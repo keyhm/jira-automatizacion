@@ -1,5 +1,6 @@
 const { getClient } = require('./jiraClient');
 const { getActiveSprint } = require('./createIssueInSprint');
+const { getSprintById } = require('./sprints');
 
 const DEFAULT_BOARD_ID = process.env.JIRA_BOARD_ID || '2';
 
@@ -68,7 +69,7 @@ async function getSprintIssues(client, boardId, sprintId) {
 }
 
 async function resolveSprint(client, sprintId, boardId) {
-  return sprintId ? { id: sprintId } : getActiveSprint(client, boardId);
+  return sprintId ? getSprintById(sprintId) : getActiveSprint(client, boardId);
 }
 
 async function listSprintIssues({ sprintId, boardId = DEFAULT_BOARD_ID } = {}) {
