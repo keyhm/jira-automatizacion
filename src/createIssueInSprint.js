@@ -1,6 +1,7 @@
 const { getClient } = require('./jiraClient');
 const { addWorklog } = require('./worklog');
-const { getTransitions, transitionIssue } = require('./issueWorkflow');
+const { getTransitions, transitionIssue, pickTransitionForStatus } = require('./issueWorkflow');
+const { updateOriginalEstimate } = require('./estimate');
 
 const DEFAULT_PROJECT_KEY = process.env.JIRA_PROJECT_KEY || 'JS';
 const DEFAULT_BOARD_ID = process.env.JIRA_BOARD_ID || '2';
@@ -100,6 +101,9 @@ async function createIssueInSprint({
   assigneeAccountId,
   epicKey,
   timeSpentSeconds,
+  originalEstimate,
+  dueDate,
+  initialComment,
   status,
 } = {}) {
   if (!project) throw new Error('El proyecto es obligatorio.');
@@ -120,6 +124,7 @@ async function createIssueInSprint({
   if (formattedDescription) fields.description = formattedDescription;
   if (assigneeAccountId) fields.assignee = { accountId: assigneeAccountId };
   if (epicKey) fields.parent = { key: epicKey };
+  if (dueDate) fields.duedate = dueDate;
 
   let createdIssue;
   try {
@@ -137,19 +142,35 @@ async function createIssueInSprint({
     throwApiError(error, `La asignación del issue ${createdIssue.key} al sprint ${sprintId}`);
   }
 
+  // Regla sprint 112: toda tarea del sprint lleva estimación original. Se fija
+  // en una llamada aparte para que, si Jira no admite el campo en la creación,
+  // la tarea igual se cree y solo se avise.
+  let estimateWarning;
+  if (originalEstimate) {
+    try {
+      await updateOriginalEstimate(createdIssue.key, originalEstimate, client);
+    } catch (error) {
+      estimateWarning = error.message;
+      console.warn(`[createIssueInSprint] ${createdIssue.key}: no se pudo fijar la estimación. ${error.message}`);
+    }
+  }
+
   if (timeSpentSeconds > 0) {
     await addWorklog(createdIssue.key, timeSpentSeconds, client);
   }
 
-  if (status) {
-    // "status" es una categoría de Jira (new/indeterminate/done), no el nombre
-    // del estado — así funciona sin importar si el workflow está en español,
-    // inglés, o tiene nombres de estado a medida.
+  let statusWarning;
+  if (status && status !== 'todo' && status !== 'new') {
+    // "status" es una clave de estado (doing, review, blocked, done) que se
+    // resuelve por el nombre del estado destino (desde el sprint 112 hay tres
+    // estados en la misma categoría de Jira). Se aceptan también las categorías
+    // antiguas new/indeterminate/done.
     const transitions = await getTransitions(createdIssue.key);
-    const match = transitions.find((t) => t.toCategory === status);
+    const match = pickTransitionForStatus(transitions, status);
     if (match) {
       await transitionIssue(createdIssue.key, match.id);
     } else {
+      statusWarning = `No se encontró la transición al estado "${status}": la tarea quedó en su estado inicial.`;
       console.warn(
         `[createIssueInSprint] ${createdIssue.key}: no se encontró una transición a la categoría "${status}". Transiciones disponibles:`,
         transitions.map((t) => `${t.name} -> ${t.to} (${t.toCategory})`)
@@ -157,10 +178,30 @@ async function createIssueInSprint({
     }
   }
 
+  // Comentario inicial (p. ej. qué vas a hacer, o por qué nace Bloqueada). Va al final
+  // para que quede después del cambio de estado.
+  let commentWarning;
+  if (initialComment && initialComment.trim()) {
+    try {
+      await client.post(`/rest/api/3/issue/${encodeURIComponent(createdIssue.key)}/comment`, {
+        body: {
+          type: 'doc',
+          version: 1,
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: initialComment.trim() }] }],
+        },
+      });
+    } catch (error) {
+      commentWarning = 'No se pudo guardar el comentario inicial; agrégalo desde el Tablero.';
+    }
+  }
+
   return {
     ...createdIssue,
     sprint: targetSprint,
     assigneeAccountId,
+    estimateWarning,
+    statusWarning,
+    commentWarning,
   };
 }
 

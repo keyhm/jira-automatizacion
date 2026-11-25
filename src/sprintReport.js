@@ -33,7 +33,26 @@ function normalizeIssue(issue) {
     status: issue.fields.status.name,
     statusCategory: issue.fields.status.statusCategory.key,
     secondsLogged: issue.fields.timespent || 0,
+    originalSeconds: issue.fields.timeoriginalestimate || 0,
+    remainingSeconds: issue.fields.timeestimate || 0,
+    updated: issue.fields.updated || null,
     commentCount: issue.fields.comment?.total ?? 0,
+    subtask: Boolean(issue.fields.issuetype.subtask),
+    // Enlaces "Blocks": blocks = esta tarea bloquea a otra; blockedBy = la bloquea otra.
+    links: (issue.fields.issuelinks || [])
+      .filter((l) => (l.type?.name || '').toLowerCase() === 'blocks')
+      .map((l) => {
+        const other = l.outwardIssue || l.inwardIssue;
+        return {
+          direction: l.outwardIssue ? 'blocks' : 'blockedBy',
+          key: other?.key,
+          summary: other?.fields?.summary || '',
+          status: other?.fields?.status?.name || '',
+          statusCategory: other?.fields?.status?.statusCategory?.key || '',
+          assignee: other?.fields?.assignee?.displayName || null,
+        };
+      })
+      .filter((l) => l.key),
     dueDate: issue.fields.duedate || null,
     epic,
     assignee,
@@ -53,7 +72,7 @@ async function getSprintIssues(client, boardId, sprintId) {
           jql: `sprint = ${sprintId}`,
           startAt,
           maxResults,
-          fields: 'summary,status,issuetype,timespent,parent,assignee,comment,duedate',
+          fields: 'summary,status,issuetype,timespent,timeoriginalestimate,timeestimate,updated,parent,assignee,comment,duedate,issuelinks',
         },
       }));
     } catch (error) {
@@ -97,6 +116,8 @@ async function getSprintReport({ sprintId, boardId = DEFAULT_BOARD_ID, epicKey, 
   const byAssignee = {};
   let doneCount = 0;
   let totalSecondsLogged = 0;
+  let totalSecondsEstimated = 0;
+  let totalSecondsRemaining = 0;
 
   for (const issue of issues) {
     byStatus[issue.status] = (byStatus[issue.status] || 0) + 1;
@@ -104,6 +125,8 @@ async function getSprintReport({ sprintId, boardId = DEFAULT_BOARD_ID, epicKey, 
     byType[issue.type] = (byType[issue.type] || 0) + 1;
     if (issue.statusCategory === 'done') doneCount += 1;
     totalSecondsLogged += issue.secondsLogged;
+    totalSecondsEstimated += issue.originalSeconds;
+    totalSecondsRemaining += issue.remainingSeconds;
 
     const epicLabel = issue.epic ? issue.epic.summary : 'Sin proyecto asociado';
     if (!byEpic[epicLabel]) byEpic[epicLabel] = { issues: 0, secondsLogged: 0 };
@@ -127,6 +150,9 @@ async function getSprintReport({ sprintId, boardId = DEFAULT_BOARD_ID, epicKey, 
     byEpic,
     byAssignee,
     totalHoursLogged: Math.round((totalSecondsLogged / 3600) * 100) / 100,
+    totalHoursEstimated: Math.round((totalSecondsEstimated / 3600) * 100) / 100,
+    totalHoursRemaining: Math.round((totalSecondsRemaining / 3600) * 100) / 100,
+    withoutEstimate: issues.filter((i) => !i.originalSeconds && i.statusCategory !== 'done').length,
   };
 }
 

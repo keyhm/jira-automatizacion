@@ -3,12 +3,16 @@ import CreateTaskView from './components/CreateTaskView';
 import ReportView from './components/ReportView';
 import IssuesView from './components/IssuesView';
 import MeetingsView from './components/MeetingsView';
+import QAPanelView from './components/QAPanelView';
+import FiltersView from './components/FiltersView';
 import SprintPicker from './components/SprintPicker';
 import useLocalStorageState from './hooks/useLocalStorageState';
 
 const TABS = [
   { id: 'create', label: 'Crear tarea', emoji: '✨' },
   { id: 'board', label: 'Tablero', emoji: '🗂️' },
+  { id: 'qa', label: 'Panel QA', emoji: '🧭' },
+  { id: 'filters', label: 'Filtros JS', emoji: '🔎' },
   { id: 'report', label: 'Reporte', emoji: '📊' },
   { id: 'meetings', label: 'Reuniones', emoji: '📅' },
 ];
@@ -33,11 +37,20 @@ export default function App() {
   const [epics, setEpics] = useState([]);
   const [epicsLoading, setEpicsLoading] = useState(true);
 
+  const [me, setMe] = useState(null);
+  // Proyectos que sigue esta persona como QA (se guardan solo en su navegador).
+  const [qaProjects, setQaProjects] = useLocalStorageState('jira-qa:qaProjects', []);
+
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/health').then((r) => r.json()).then(setHealth).catch(() => {});
+
+    fetch('/api/me')
+      .then((r) => r.json())
+      .then((data) => setMe(data.accountId ? data : null))
+      .catch(() => setMe(null));
 
     fetch('/api/sprints')
       .then((r) => r.json())
@@ -79,11 +92,15 @@ export default function App() {
     epicsLoading,
     users,
     usersLoading,
+    me,
+    qaProjects,
+    setQaProjects,
     boardWidth,
     setBoardWidth,
   };
 
-  const containerWidth = tab === 'board' ? BOARD_WIDTHS[boardWidth] || BOARD_WIDTHS.ancho : 'max-w-3xl';
+  const WIDE_TABS = ['board', 'qa', 'filters'];
+  const containerWidth = WIDE_TABS.includes(tab) ? BOARD_WIDTHS[boardWidth] || BOARD_WIDTHS.ancho : 'max-w-3xl';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 font-sans text-slate-800">
@@ -105,7 +122,7 @@ export default function App() {
             <p className="text-sm text-red-600">No se pudieron cargar los sprints: {sprintsError}</p>
           )}
 
-          <nav className="mt-2 inline-flex rounded-full bg-white/70 p-1 shadow-sm ring-1 ring-slate-200">
+          <nav className="mt-2 inline-flex flex-wrap justify-center rounded-full bg-white/70 p-1 shadow-sm ring-1 ring-slate-200">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -123,6 +140,8 @@ export default function App() {
 
         {tab === 'create' && <CreateTaskView {...shared} />}
         {tab === 'board' && <IssuesView {...shared} />}
+        {tab === 'qa' && <QAPanelView {...shared} />}
+        {tab === 'filters' && <FiltersView {...shared} />}
         {tab === 'report' && <ReportView {...shared} />}
         {tab === 'meetings' && <MeetingsView />}
       </div>

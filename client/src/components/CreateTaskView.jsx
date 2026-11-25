@@ -3,6 +3,7 @@ import EpicPicker from './EpicPicker';
 import RichTextEditor from './RichTextEditor';
 import RichTextView from './RichTextView';
 import { tiptapToAdf, isEmptyDoc } from '../lib/adf';
+import { ESTIMATE_FORMAT } from '../lib/workflow';
 
 const ISSUE_TYPES = [
   { value: 'Task', label: 'Tarea', emoji: '📋' },
@@ -10,13 +11,15 @@ const ISSUE_TYPES = [
   { value: 'Story', label: 'Historia', emoji: '📖' },
 ];
 
-// "value" es la categoría de estado de Jira (new/indeterminate/done), no el
-// nombre — así funciona igual sin importar si el workflow de cada quien está
-// en español, inglés, o tiene nombres de estado a medida.
+// Los 5 estados del tablero desde el sprint 112. "value" es la clave interna;
+// el servidor la resuelve por el nombre del estado en el workflow (en español o
+// inglés). "hint" recuerda qué pide la regla al dejar la tarea en ese estado.
 const STATUSES = [
-  { value: 'new', label: 'Por hacer', emoji: '📥' },
-  { value: 'indeterminate', label: 'En progreso', emoji: '🔄' },
-  { value: 'done', label: 'Hecha', emoji: '✅' },
+  { value: 'todo', label: 'Por hacer', emoji: '📥' },
+  { value: 'doing', label: 'En progreso', emoji: '🔄', hint: 'Solo una tarea En progreso por persona: la que se trabaja ahora. Deja un comentario con lo que vas a hacer.' },
+  { value: 'review', label: 'En revisión', emoji: '🔎', hint: 'Al dejarla En revisión, comenta qué se entregó, cómo probarlo y @menciona a quien debe revisarla (se agrega desde el Tablero).' },
+  { value: 'blocked', label: 'Bloqueada', emoji: '⛔', hint: 'Al bloquearla, comenta qué falta y de quién, con @mención (se agrega desde el Tablero).' },
+  { value: 'done', label: 'Hecha', emoji: '✅', hint: 'Hecha sin comentario de solución (qué se hizo y cómo se comprobó) no cuenta.' },
 ];
 
 const STEPS = { FORM: 'form', CONFIRM: 'confirm', DONE: 'done' };
@@ -27,9 +30,12 @@ const emptyForm = {
   description: null,
   assigneeAccountIds: [],
   epicKey: '',
+  estimate: '',
+  dueDate: '',
+  initialComment: '',
   hours: '',
   minutes: '',
-  status: 'new',
+  status: 'todo',
 };
 
 export default function CreateTaskView({
@@ -64,6 +70,11 @@ export default function CreateTaskView({
   function goToConfirm(e) {
     e.preventDefault();
     if (!form.summary.trim()) return;
+    if (form.estimate.trim() && !ESTIMATE_FORMAT.test(form.estimate.trim())) {
+      setError('La estimación debe tener formato como 4h, 1d 4h o 30m (1d = 8h).');
+      return;
+    }
+    setError(null);
     setStep(STEPS.CONFIRM);
   }
 
@@ -88,6 +99,9 @@ export default function CreateTaskView({
           assigneeAccountIds: form.assigneeAccountIds,
           epicKey: form.epicKey || undefined,
           timeSpentSeconds: timeSpentSeconds() || undefined,
+          originalEstimate: form.estimate.trim() || undefined,
+          dueDate: form.dueDate || undefined,
+          initialComment: form.initialComment.trim() || undefined,
           status: form.status,
         }),
       });
@@ -159,7 +173,7 @@ export default function CreateTaskView({
 
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Estado inicial</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                 {STATUSES.map((s) => (
                   <button
                     type="button"
@@ -176,6 +190,7 @@ export default function CreateTaskView({
                   </button>
                 ))}
               </div>
+              {statusMeta.hint && <p className="mt-2 text-xs text-slate-400">{statusMeta.hint}</p>}
             </div>
 
             <div>
@@ -267,6 +282,47 @@ export default function CreateTaskView({
             </div>
 
             <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Comentario inicial (opcional)</label>
+              <textarea
+                value={form.initialComment}
+                onChange={(e) => updateField('initialComment', e.target.value)}
+                rows={2}
+                placeholder="Ej: hoy voy a revisar el flujo de pagos"
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Se guarda como primer comentario, después de fijar el estado. Para En revisión o Bloqueada, agrega la @mención en Jira (aquí no se puede mencionar).
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Fecha</label>
+              <input
+                type="date"
+                value={form.dueDate}
+                onChange={(e) => updateField('dueDate', e.target.value)}
+                className="w-48 rounded-xl border border-slate-200 px-4 py-2.5 text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Una tarea sin fecha la corrige Jira sola (lunes del cierre del sprint). Mejor créala completa: responsable, épica, fecha y estimación.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Estimación original</label>
+              <input
+                type="text"
+                value={form.estimate}
+                onChange={(e) => updateField('estimate', e.target.value)}
+                placeholder="Ej: 4h · 1d 4h · 30m"
+                className="w-48 rounded-xl border border-slate-200 px-4 py-2.5 text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Desde el sprint 112 toda tarea del sprint lleva estimación original (sale del plan de trabajo de QA; 1d = 8h). Si la dejas vacía, quedará en «Sin estimación».
+              </p>
+            </div>
+
+            <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Tiempo invertido (opcional)</label>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
@@ -297,6 +353,10 @@ export default function CreateTaskView({
               </div>
               <p className="mt-1 text-xs text-slate-400">Se registra como worklog en Jira al crear la tarea.</p>
             </div>
+
+            {error && step === STEPS.FORM && (
+              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+            )}
 
             <button
               type="submit"
@@ -352,6 +412,14 @@ export default function CreateTaskView({
                     'Sin asignar'
                   )}
                 </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Fecha</dt>
+                <dd className="font-medium text-slate-800">{form.dueDate || 'Sin fecha (Jira la completará sola)'}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Estimación original</dt>
+                <dd className="font-medium text-slate-800">{form.estimate.trim() || 'Sin estimación (quedará pendiente)'}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-500">
@@ -432,6 +500,19 @@ export default function CreateTaskView({
                             {person && <img src={person.avatarUrls?.['24x24']} alt="" className="h-5 w-5 rounded-full" />}
                             {person ? person.displayName : 'Sin asignar'}
                           </span>
+                          {r.issue.statusWarning && (
+                            <span className="text-xs text-amber-700" title={r.issue.statusWarning}>
+                              ⚠ No se pudo poner el estado: cámbialo desde el Tablero
+                            </span>
+                          )}
+                          {r.issue.commentWarning && (
+                            <span className="text-xs text-amber-700">{r.issue.commentWarning}</span>
+                          )}
+                          {r.issue.estimateWarning && (
+                            <span className="text-xs text-amber-700" title={r.issue.estimateWarning}>
+                              ⚠ Sin estimación: ponla desde el Tablero
+                            </span>
+                          )}
                           <a
                             href={`https://${import.meta.env.VITE_JIRA_DOMAIN || ''}/browse/${r.issue.key}`}
                             target="_blank"

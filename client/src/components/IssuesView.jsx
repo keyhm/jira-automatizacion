@@ -8,6 +8,9 @@ import DueDateChanger from './DueDateChanger';
 import SummaryEditor from './SummaryEditor';
 import CommentsPanel from './CommentsPanel';
 import BulkActionBar from './BulkActionBar';
+import EstimateEditor from './EstimateEditor';
+import { AlertChips, LinksList } from './IssueTable';
+import { computeAlerts, statusKey } from '../lib/workflow';
 import useLocalStorageState from '../hooks/useLocalStorageState';
 
 const WIDTH_OPTIONS = [
@@ -57,6 +60,8 @@ export default function IssuesView({
 
   const statuses = useMemo(() => [...new Set(issues.map((i) => i.status))], [issues]);
 
+  const alertsByKey = useMemo(() => computeAlerts(issues), [issues]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return issues.filter((issue) => {
@@ -72,6 +77,10 @@ export default function IssuesView({
     setIssues((prev) =>
       prev.map((i) => (i.key === key ? { ...i, status: newStatus, statusCategory: newStatusCategory } : i))
     );
+  }
+
+  function updateIssueEstimate(key, values) {
+    setIssues((prev) => prev.map((i) => (i.key === key ? { ...i, ...values } : i)));
   }
 
   function updateIssueTime(key, seconds) {
@@ -211,7 +220,7 @@ export default function IssuesView({
       />
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white/80 shadow-sm">
-        <table className="w-full min-w-[920px] text-left text-sm">
+        <table className="w-full min-w-[1080px] text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
             <tr>
               <th className="w-10 px-4 py-3">
@@ -226,6 +235,7 @@ export default function IssuesView({
               <th className="px-4 py-3">Proyecto</th>
               <th className="px-4 py-3">Asignado</th>
               <th className="px-4 py-3">Tiempo</th>
+              <th className="px-4 py-3">Estimación</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Vence</th>
               <th className="px-4 py-3">Comentarios</th>
@@ -249,6 +259,8 @@ export default function IssuesView({
                     summary={issue.summary}
                     onChanged={(newSummary) => updateIssueSummary(issue.key, newSummary)}
                   />
+                  <AlertChips codes={alertsByKey[issue.key]} />
+                  <LinksList links={issue.links} />
                 </td>
                 <td className="px-4 py-3">
                   <EpicChanger
@@ -271,6 +283,16 @@ export default function IssuesView({
                     issueKey={issue.key}
                     secondsLogged={issue.secondsLogged}
                     onTotalChanged={(seconds) => updateIssueTime(issue.key, seconds)}
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <EstimateEditor
+                    issueKey={issue.key}
+                    originalSeconds={issue.originalSeconds}
+                    remainingSeconds={issue.remainingSeconds}
+                    secondsLogged={issue.secondsLogged}
+                    isDone={statusKey(issue.status, issue.statusCategory) === 'done'}
+                    onChanged={(values) => updateIssueEstimate(issue.key, values)}
                   />
                 </td>
                 <td className="px-4 py-3">
@@ -300,7 +322,7 @@ export default function IssuesView({
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                   No hay issues que coincidan con los filtros.
                 </td>
               </tr>

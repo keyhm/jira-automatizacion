@@ -23,6 +23,7 @@ const { listComments, addComment, deleteComment } = require('../src/comments');
 const { listBacklogIssues, moveIssuesToBacklog } = require('../src/backlog');
 const { uploadAttachment, getAttachmentContent } = require('../src/attachments');
 const { listTeamMeetings, saveTeamMeetings } = require('../src/meetings');
+const { updateOriginalEstimate } = require('../src/estimate');
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 4000;
@@ -44,6 +45,16 @@ app.get('/api/health', async (_req, res) => {
     res.json({ ok: true, project: { key: data.key, name: data.name } });
   } catch (error) {
     res.status(error.response?.status || 500).json({ ok: false, error: error.message });
+  }
+});
+
+app.get('/api/me', async (_req, res) => {
+  try {
+    const client = await getClient();
+    const { data } = await client.get('/rest/api/3/myself');
+    res.json({ accountId: data.accountId, displayName: data.displayName });
+  } catch (error) {
+    res.status(error.response?.status || 500).json({ error: error.message });
   }
 });
 
@@ -119,11 +130,20 @@ app.get('/api/backlog', async (_req, res) => {
 });
 
 app.post('/api/backlog/issues', async (req, res) => {
-  const { issueKeys } = req.body;
+  const { issueKeys, comment } = req.body;
   if (!Array.isArray(issueKeys) || issueKeys.length === 0) {
     return res.status(400).json({ error: 'issueKeys debe ser un arreglo no vacío.' });
   }
+  // Regla sprint 112: quien baja una tarea al backlog deja el comentario ese mismo
+  // momento (por qué sale, cuándo se retoma y nueva fecha estimada) y con la
+  // autorización de Alexander.
+  if (!comment || !comment.trim()) {
+    return res.status(400).json({ error: 'Falta el comentario: por qué sale, cuándo se retoma y nueva fecha estimada (con autorización de Alexander).' });
+  }
   try {
+    for (const key of issueKeys) {
+      await addComment(key, { text: comment.trim() });
+    }
     await moveIssuesToBacklog(issueKeys);
     res.status(204).end();
   } catch (error) {
@@ -178,6 +198,19 @@ app.put('/api/issues/:key/duedate', async (req, res) => {
   try {
     await updateIssueDueDate(req.params.key, dueDate || null);
     res.status(204).end();
+  } catch (error) {
+    res.status(error.response?.status || 500).json({ error: error.message });
+  }
+});
+
+app.put('/api/issues/:key/estimate', async (req, res) => {
+  const { originalEstimate } = req.body;
+  if (!originalEstimate) {
+    return res.status(400).json({ error: 'originalEstimate es obligatorio (ej: 4h, 1d 4h, 30m).' });
+  }
+  try {
+    const result = await updateOriginalEstimate(req.params.key, originalEstimate);
+    res.json(result);
   } catch (error) {
     res.status(error.response?.status || 500).json({ error: error.message });
   }
@@ -335,7 +368,7 @@ app.delete('/api/issues/:key/worklogs/:worklogId', async (req, res) => {
 });
 
 app.post('/api/issues', async (req, res) => {
-  const { issueType, summary, description, sprintId, assigneeAccountId, epicKey, timeSpentSeconds, status } = req.body;
+  const { issueType, summary, description, sprintId, assigneeAccountId, epicKey, timeSpentSeconds, originalEstimate, dueDate, initialComment, status } = req.body;
 
   if (!summary) {
     return res.status(400).json({ error: 'El resumen es obligatorio.' });
@@ -352,6 +385,9 @@ app.post('/api/issues', async (req, res) => {
       assigneeAccountId: assigneeAccountId || undefined,
       epicKey: epicKey || undefined,
       timeSpentSeconds: timeSpentSeconds || undefined,
+      originalEstimate: originalEstimate || undefined,
+      dueDate: dueDate || undefined,
+      initialComment: initialComment || undefined,
       status: status || undefined,
     });
     res.status(201).json(issue);
@@ -361,7 +397,7 @@ app.post('/api/issues', async (req, res) => {
 });
 
 app.post('/api/issues/for-assignees', async (req, res) => {
-  const { issueType, summary, description, sprintId, assigneeAccountIds, epicKey, timeSpentSeconds, status } = req.body;
+  const { issueType, summary, description, sprintId, assigneeAccountIds, epicKey, timeSpentSeconds, originalEstimate, dueDate, initialComment, status } = req.body;
 
   if (!summary) {
     return res.status(400).json({ error: 'El resumen es obligatorio.' });
@@ -378,6 +414,9 @@ app.post('/api/issues/for-assignees', async (req, res) => {
       assigneeAccountIds: Array.isArray(assigneeAccountIds) ? assigneeAccountIds : [],
       epicKey: epicKey || undefined,
       timeSpentSeconds: timeSpentSeconds || undefined,
+      originalEstimate: originalEstimate || undefined,
+      dueDate: dueDate || undefined,
+      initialComment: initialComment || undefined,
       status: status || undefined,
     });
     res.status(201).json(results);

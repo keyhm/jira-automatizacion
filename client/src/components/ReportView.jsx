@@ -2,14 +2,7 @@ import { useEffect, useState } from 'react';
 import FilterBar from './FilterBar';
 import useLocalStorageState from '../hooks/useLocalStorageState';
 
-// Colores por categoría de Jira (new/indeterminate/done), no por nombre —
-// así se pintan igual sin importar si el workflow está en español, inglés,
-// o tiene nombres de estado a medida.
-const CATEGORY_COLORS = {
-  new: 'bg-slate-400',
-  indeterminate: 'bg-amber-400',
-  done: 'bg-emerald-500',
-};
+import { statusMeta } from '../lib/workflow';
 
 function StatTile({ label, value, accent }) {
   return (
@@ -126,11 +119,17 @@ export default function ReportView({ epics, users, selectedSprintId }) {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             <StatTile label="Issues totales" value={report.totalIssues} accent="text-slate-800" />
             <StatTile label="% completado" value={`${report.percentComplete}%`} accent="text-emerald-600" />
             <StatTile label="Completadas" value={report.completedIssues} accent="text-emerald-600" />
             <StatTile label="Horas registradas" value={report.totalHoursLogged} accent="text-indigo-600" />
+            <StatTile label="Horas estimadas" value={report.totalHoursEstimated} accent="text-slate-700" />
+            <StatTile
+              label="Sin estimación"
+              value={report.withoutEstimate}
+              accent={report.withoutEstimate ? 'text-red-600' : 'text-emerald-600'}
+            />
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
@@ -151,7 +150,7 @@ export default function ReportView({ epics, users, selectedSprintId }) {
               title="Por estado"
               entries={Object.entries(report.byStatus)}
               total={report.totalIssues}
-              colorFor={(label) => CATEGORY_COLORS[report.statusCategoryByName?.[label]] || 'bg-slate-400'}
+              colorFor={(label) => statusMeta(label, report.statusCategoryByName?.[label]).bar}
             />
             <BreakdownBars
               title="Por tipo"
